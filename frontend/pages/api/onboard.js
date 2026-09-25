@@ -12,7 +12,20 @@ export default async function handler(req, res) {
 
   try {
     const data = req.body;
-    const { businessId, name, category, timezone, workingHoursStart, workingHoursEnd } = data;
+    const { 
+      businessId, 
+      name, 
+      category, 
+      timezone, 
+      workingHoursStart, 
+      workingHoursEnd,
+      specialties,
+      opensAt,
+      closesAt,
+      ownerWhatsApp,
+      services,
+      phoneNumber
+    } = data;
 
     if (!businessId) {
       return res.status(400).json({ error: 'businessId is required' });
@@ -30,7 +43,13 @@ export default async function handler(req, res) {
         category,
         timezone,
         workingHoursStart,
-        workingHoursEnd
+        workingHoursEnd,
+        specialties,
+        opensAt,
+        closesAt,
+        ownerWhatsApp,
+        services,
+        phoneNumber
       })
     });
 

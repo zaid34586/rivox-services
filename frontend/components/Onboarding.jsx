@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 
-const BRIDGE_URL = process.env.NEXT_PUBLIC_BRIDGE_URL || 'http://51.21.162.170:8081';
-
 export default function Onboarding() {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -40,7 +38,7 @@ export default function Onboarding() {
   };
 
   const apiCall = async (endpoint, options = {}) => {
-    const res = await fetch(`${BRIDGE_URL}${endpoint}`, {
+    const res = await fetch(endpoint, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -57,7 +55,7 @@ export default function Onboarding() {
     setQrCode(null);
     setSessionValid(null);
     try {
-      const res = await fetch(`${BRIDGE_URL}/qr`);
+      const res = await fetch('/api/qr');
       if (!res.ok) throw new Error('Failed to fetch QR');
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -74,7 +72,7 @@ export default function Onboarding() {
     if (qrPollRef.current) clearInterval(qrPollRef.current);
     qrPollRef.current = setInterval(async () => {
       try {
-        const data = await apiCall(`/verify-session/${formData.businessId}`);
+        const data = await apiCall(`/api/verify-session/${formData.businessId}`);
         if (data.valid) {
           clearInterval(qrPollRef.current);
           setSessionValid(true);
@@ -113,7 +111,7 @@ export default function Onboarding() {
   const handleVerify = async () => {
     setStatus('loading');
     try {
-      const data = await apiCall(`/verify-session/${formData.businessId}`);
+      const data = await apiCall(`/api/verify-session/${formData.businessId}`);
       if (data.valid) {
         setStatus('idle');
         setStep(3);
@@ -148,7 +146,7 @@ export default function Onboarding() {
     };
 
     try {
-      const data = await apiCall('/onboard', {
+      const data = await apiCall('/api/onboard', {
         method: 'POST',
         body: JSON.stringify(payload),
       });

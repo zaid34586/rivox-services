@@ -1,0 +1,90 @@
+# WhatsApp Business Agent Configuration Template
+# Copy this to /home/ubuntu/.hermes/businesses/<business_name>/config/config.yaml and edit as needed
+
+whatsapp:
+  # Baileys/WhatsApp session file path
+  session_file: "/home/ubuntu/.hermes/businesses/{{business_id}}/session.json"
+  # Webhook port for receiving messages (if using webhook mode)
+  # NOTE: Currently not used in this agent. If implementing webhooks, ensure the port is open in AWS security group.
+  webhook_port: 8081
+  # Rate limiting for outgoing messages (messages per hour)
+  rate_limit_per_hour: 20
+  # Response delay range (seconds) to seem more human
+  response_delay_min: 2
+  response_delay_max: 10
+
+calendar:
+  # Enable calendar integration for booking
+  enabled: false
+  # Type of calendar: "google" or "simple" (database-based)
+  type: "google"
+  # Path to Google Calendar service account credentials
+  credentials_file: "/home/ubuntu/.hermes/businesses/{{business_id}}/config/calendar_credentials.json"
+  # Default calendar ID (for Google Calendar, usually 'primary')
+  default_calendar_id: "primary"
+  # Buffer time between appointments (minutes)
+  buffer_time: 15
+
+database:
+  # Database type: postgresql (recommended) or sqlite
+  type: "postgresql"
+  host: "localhost"
+  port: 5432
+  # Database name will be whatsapp_business_<business_id>
+  database: "whatsapp_business_{{business_id}}"
+  user: "agency_user"
+  password: "secure_password"  # Should be changed in production
+  # Connection pool settings
+  pool_min_size: 1
+  pool_max_size: 10
+
+business:
+  # Business identification
+  id: "{{business_id}}"  # Will be replaced by actual business ID
+  name: ""  # e.g., "Glow Beauty Salon"
+  type: "general"  # restaurant, salon, clinic, gym, etc.
+  timezone: "Asia/Kolkata"  # IANA timezone string
+  working_hours:
+    start: "09:00"  # HH:MM format in 24-hour clock
+    end: "18:00"    # HH:MM format in 24-hour clock
+  # Default appointment duration (minutes)
+  default_appointment_duration: 30
+  # Whether to require deposit for bookings
+  require_deposit: false
+  deposit_amount: 0  # In local currency
+  # Owner's WhatsApp number (primary)
+  owner_whatsapp: ""
+  # Kitchen/Staff number for order notifications
+  kitchen_number: ""
+  # Restaurant-specific settings (only used if business.type == 'restaurant')
+  restaurant:
+    enabled_services:
+      - table_booking
+      - food_order
+      - party_booking
+      - online_payment
+      - cash_payment
+      - feedback
+    tables: 10
+
+# WhatsApp message templates (can be customized per business)
+templates:
+  auto_reply:
+    greeting: "Hello! 👋 Thanks for messaging {{business_name}}. How can I help you today?"
+    booking_confirm: "Great! Your appointment is confirmed for {{date}} at {{time}}. Please reply 'CONFIRM' to confirm or 'RESCHEDULE' to change."
+    reminder: "Reminder: You have an appointment tomorrow at {{time}}. Please reply 'YES' to confirm or 'NO' to cancel."
+    follow_up: "Hope you enjoyed your service today! How was your experience?"
+    review_request: "If you had a great experience, we'd love your feedback! Please leave a review: {{review_link}}"
+    review_thankyou: "Thank you for your review! We appreciate your support. 🙏"
+
+# Advanced settings
+advanced:
+  # Enable debug logging
+  debug_logging: false
+  # Maximum number of concurrent conversations
+  max_concurrent_conversations: 50
+  # Auto-escalate to human after N failed AI responses
+  human_handoff_threshold: 3
+  # Store media files (images, etc.) received via WhatsApp
+  store_media: true
+  media_storage_path: "/home/ubuntu/.hermes/businesses/{{business_id}}/media"

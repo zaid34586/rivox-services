@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
+import styles from '../../styles/onboarding.module.css';
 
 export default function Onboarding() {
   const [step, setStep] = useState(1);

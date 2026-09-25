@@ -14,6 +14,14 @@ API_TOKEN = os.getenv("ONBOARD_API_TOKEN", "changeme")
 
 def require_token():
     token = request.headers.get('X-API-Key')
+    # Debug: print token and API_TOKEN (masking for security)
+    if token:
+        masked_token = token[:3] + '...' + token[-3:] if len(token) > 6 else '*' * len(token)
+        print(f"DEBUG: require_token - token header: {masked_token}")
+    else:
+        print("DEBUG: require_token - no token header")
+    masked_api = API_TOKEN[:3] + '...' + API_TOKEN[-3:] if len(API_TOKEN) > 6 else '*' * len(API_TOKEN)
+    print(f"DEBUG: require_token - API_TOKEN: {masked_api}")
     if token != API_TOKEN:
         return False
     return True

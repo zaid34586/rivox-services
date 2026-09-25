@@ -5,3 +5,12 @@ vercel/
 infra/venv/
 .vercel
 .env*
+
+__pycache__/
+*.pyc
+*.log
+session*.json
+*.bak*
+*.pyc
+.env
+.DS_Store

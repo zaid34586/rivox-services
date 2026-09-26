@@ -47,11 +47,19 @@ Service chuniye:
   - Auto-cancellation if no-show (15 minutes past booking time)
   - Status tracking: Confirmed → Seated → Completed
 
-### 3. Food Order Flow (Phase B+)
-[To be implemented in subsequent phases]
+### 3. Food Order Flow (Phase B) — IMPLEMENTED
+- Welcome menu → `2. Food Order` → categories from `menu.yaml` → item list → quantity (1-10)
+- Cart actions: `v` view cart, `cc` clear cart, `0` back to categories, `p` place order
+- Order confirmed: `Order Confirmed! #OX…` with subtotal + 5% GST
+- Saved to PostgreSQL `orders` table (items JSONB, total, status)
+- Owner commands: `status <ORDER_ID> ready|out|delivered` → DB update + customer notified
 
-### 4. Party/Birthday Booking Flow (Phase C+)
-[To be implemented in subsequent phases]
+### 4. Party/Birthday Booking Flow (Phase C) — IMPLEMENTED
+- Welcome menu → `3. Party / Birthday Booking` → occasion (Birthday / Anniversary / Custom)
+- Date (Today / Tomorrow / DD-MM-YYYY) → package from `party_booking.yaml` (e.g. Silver ₹15,000 / max 30 guests, Gold ₹25,000 / max 50 guests, with time slots)
+- Guest count validated against package limit (`0` = back to packages)
+- Contact: `name, +91XXXXXXXXXX, email(optional)` → confirmation summary → `Confirm` / `Change`
+- Saved to PostgreSQL `party_bookings` table; customer + owner receive WhatsApp notifications
 
 ### 5. Normal Chat
 - Agent handles generic queries (timings, location, menu) using trained FAQ

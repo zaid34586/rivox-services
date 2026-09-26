@@ -177,3 +177,70 @@ Service chuniye:
 ## Status Tracking
 - After each phase: `pm2 save` + `git push` + status message
 - Current status: Phase A in progress
+---
+
+# Portal V2 — Glassmorphism Enroll Flow (2026-09-26) ✅ IMPLEMENTED
+
+Home page → service card (glass + neon glow) → detail modal → Enroll → Connect → QR →
+Details form → Submit → Lead on AWS → agent starts → test → manual UPI payment → ACTIVE.
+
+## Pages (Vercel — connection path ONLY, no business logic on client)
+
+| Route | What it does |
+|---|---|
+| `/` | Dark glassmorphism home: hero + 1 service card (**WhatsApp AI Agent**, ₹2,000–5,000/month). Card click → glass detail modal: features + price + `💬 WhatsApp Contact` (wa.me/919899359566) + `⚡ Enroll Now` |
+| `/enroll/whatsapp` | 4-step flow (below) |
+| `/service/[id]` | Same detail as page (old links keep working) |
+| `POST /api/reset-session` | → bridge `/reset-session` → bot logs out + clears auth → fresh QR |
+| `GET /api/qr` | → bridge `/qr` → bot QR PNG (existing) |
+| `GET /api/verify-phone?phone=` | → bridge `/verify-phone/<digits>` → bot `/whoami` match |
+| `POST /api/onboard` | → bridge `/onboard` (full form body pass-through) |
+| `GET /api/lead-status/[bid]` | → bridge `/lead-status/<bid>` (payment pending/paid) |
+
+## Enroll steps (frontend/pages/enroll/whatsapp.js)
+
+1. **Connect** — WhatsApp number (auto +91) → `POST /api/reset-session` → fresh QR
+2. **Scan QR** — QR image (auto-retry fetch) + 3s polling of verify-phone; auto-advance on match;
+   Refresh QR button (re-reset)
+3. **Details** (unlocked only after connected) — your name, business name, business type
+   (dropdown + Other free-text), address, services/menu, **service pills**
+   (Table/Food/Party/FAQ + `Other → type your own` → maps to normal_chat + customNote saved),
+   auto Business ID = `slug(name)_<phone last4>`. Submit → bridge `/onboard`
+4. **Test & Pay** — success + businessId, test instructions (message from a **second phone** —
+   self-chat NOT supported: bot skips `fromMe`), payment card: UPI `rivox@upi` ₹2,000,
+   screenshot → wa.me to owner, status pill polls lead-status → `✅ SERVICE ACTIVE` after approve
+
+## Bridge (infra/bridge_api.py, port 8081, pm2 `rivox-bridge`)
+
+- `POST /reset-session` → bot `/reset` (logout, wipe auth_info, fresh QR)
+- `GET /verify-phone/<digits>` → bot `/whoami` → entered-vs-connected (last-10 fallback)
+- `POST /onboard` (extended) → business dir + template config + **config injection**
+  (name, type, owner_whatsapp, enabled_services from form, generic 3-QA FAQ with address),
+  **lead file** `.hermes/leads/<bid>.json` (payment: pending), **phone map**
+  `.hermes/phone_map.json` (`+number → businessId`), **per-business PG DB**
+  `whatsapp_business_<bid>` (CREATE DATABASE + `infra/schema.sql`), pm2 agent start
+  (`whatsapp-<bid>`), returns `{success, businessId}`
+- `GET /lead-status/<bid>` / `POST /approve/<bid>` (token) → payment paid + status active
+- Auth: `X-API-Key` = Vercel env `ONBOARD_API_TOKEN` (= `mysecrettoken123`, matches bridge pm2 env)
+
+## Bot (whatsapp-bot/index.js, port 8080)
+
+- `POST /reset` — logout + clear auth → fresh QR (generation counter prevents double sockets)
+- `GET /whoami` — `{connected, number: "+91..."}`
+- **Dynamic businessId**: connected number → phone_map lookup → `test_biz` fallback
+- `connection.open` → writes `.hermes/businesses/<bid>/session.json` marker (if mapped)
+- `ROUTER_API_KEY` pm2 env = `rivox-router-...` (router 8082 requires it — was MISSING, fixed)
+
+## Limits / Rules
+
+- **Single WhatsApp session at a time** — each new enroll resets the previous QR session
+- Self-chat testing not supported (fromMe skipped) — test from another number
+- Payment = manual UPI + screenshot → owner/Hermes approves:
+  `curl -X POST -H 'X-API-Key: <bridge token>' http://127.0.0.1:8081/approve/<businessId>`
+- `.hermes/leads/*.json` = source of truth for new enrollments (Hermes watches this)
+- Portal stays on Vercel (connection path only); leads/agents/DB stay in `.hermes/` on EC2
+
+## Phase 2 (pending — Hermes)
+
+- Auto-fill agent: site ↔ Hermes ↔ owner WhatsApp (agent pre-fills customer details)
+- Lead finding + outreach agent on WhatsApp (fast customer acquisition)

@@ -1,60 +1,46 @@
-import { useState } from 'react';
 import Head from 'next/head';
-import styles from '../../styles/Home.module.css';
 import Link from 'next/link';
+import glass from '../../styles/glass.module.css';
+import home from '../../styles/Home.module.css';
 import { services } from '../../data/services';
-import Onboarding from '../../components/Onboarding';
+import ServiceDetail from '../../components/ServiceDetail';
 
 export default function Service({ service }) {
   if (!service) {
     return (
-      <div className="service-content">
-        <p>Service not found.</p>
-        <Link href="/">Back to services</Link>
-      </div>
-    );
-  }
-
-  // Service-specific rendering
-  let serviceContent;
-  if (service.id === 'whatsapp') {
-    serviceContent = <Onboarding />;
-  } else {
-    // Generic service placeholder
-    serviceContent = (
-      <div className="service-content">
-        <h2>{service.title}</h2>
-        <p>{service.description}</p>
-        <p><strong>Price:</strong> {service.price}</p>
-        <p className="mt-4">
-          This service is currently in development. Please check back later.
-        </p>
+      <div className={glass.page}>
+        <div className={glass.wrap} style={{ paddingTop: 80, textAlign: 'center' }}>
+          <h1 className={home.detailTitle}>Service not found</h1>
+          <div style={{ marginTop: 24 }}>
+            <Link href="/">
+              <a className={`${glass.btn} ${glass.btnPrimary}`}>← Back to Rivox</a>
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={glass.page}>
       <Head>
-        <title>{service.title} - Rivox Services</title>
-        <meta name="description" content={service.description} />
+        <title>{service.title} — Rivox</title>
+        <meta name="description" content={service.tagline || service.description} />
       </Head>
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-3xl mx-auto">
-          <nav className="mb-6 flex items-center space-x-4">
-            <Link href="/" passThru>
-              <a className="text-sm text-gray-600 hover:text-gray-900">← Back to Services</a>
-            </Link>
-            <h1 className="text-2xl font-bold text-gray-900 flex-1">{service.title}</h1>
-          </nav>
 
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
-            <div className="px-6 pt-6">
-              {serviceContent}
-            </div>
-          </div>
+      <div className={`${glass.orb} ${glass.orbA}`} />
+      <div className={`${glass.orb} ${glass.orbB}`} />
+
+      <div className={glass.wrap} style={{ paddingTop: 46 }}>
+        <Link href="/">
+          <a className={home.backLink}>← Back to Rivox</a>
+        </Link>
+        <div className={glass.glass} style={{ position: 'relative', zIndex: 1 }}>
+          <ServiceDetail service={service} />
         </div>
-      </main>
+      </div>
+
+      <footer className={glass.footer}>© {new Date().getFullYear()} Rivox</footer>
     </div>
   );
 }

@@ -11,23 +11,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const data = req.body;
-    const { 
-      businessId, 
-      name, 
-      category, 
-      timezone, 
-      workingHoursStart, 
-      workingHoursEnd,
-      specialties,
-      opensAt,
-      closesAt,
-      ownerWhatsApp,
-      services,
-      phoneNumber
-    } = data;
-
-    if (!businessId) {
+    const data = req.body || {};
+    if (!data.businessId) {
       return res.status(400).json({ error: 'businessId is required' });
     }
 
@@ -35,25 +20,12 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-API-Key': apiToken
+        'X-API-Key': apiToken,
       },
-      body: JSON.stringify({
-        businessId,
-        name,
-        category,
-        timezone,
-        workingHoursStart,
-        workingHoursEnd,
-        specialties,
-        opensAt,
-        closesAt,
-        ownerWhatsApp,
-        services,
-        phoneNumber
-      })
+      body: JSON.stringify(data),
     });
 
-    const onboardData = await resBridge.json();
+    const onboardData = await resBridge.json().catch(() => ({}));
     return res.status(resBridge.status).json(onboardData);
   } catch (err) {
     console.error('Error in onboard API route:', err);

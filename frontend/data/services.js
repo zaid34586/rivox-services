@@ -12,14 +12,14 @@ export const services = [
     price: '₹2,000–5,000/month',
     priceNote: 'Free setup · scan & start testing in minutes',
     description:
-      'Ek smart AI agent jo aapke WhatsApp pe har customer ka handle karta hai — bookings leta hai, orders lete hain, reminders bhejta hai aur reviews collect karta hai. Aapko sirf apna WhatsApp scan karna hai.',
+      'A smart AI agent that handles every customer on your WhatsApp — takes bookings, places orders, sends reminders and collects reviews. All you do is scan your WhatsApp.',
     features: [
-      { icon: '⚡', title: '24/7 Instant Replies', text: 'Har message ka turant jawab — customer kabhi wait nahi karega.' },
-      { icon: '🍽️', title: 'Table & Party Bookings', text: 'Booking le kar confirm, calendar me entry aur auto reminder.' },
-      { icon: '🛒', title: 'Food Orders', text: 'Menu se order lena, confirm karna aur status update — sab automatic.' },
-      { icon: '💬', title: 'FAQ Auto-Reply', text: 'Timing, location, payment — common sawaalon ke sahi jawab.' },
-      { icon: '🔔', title: 'Reminders & Follow-ups', text: 'Booking reminder aur service ke baad follow-up message.' },
-      { icon: '⭐', title: 'Reviews & Feedback', text: 'Service ke baad feedback maangta hai — rating badhti hai.' },
+      { icon: '⚡', title: '24/7 Instant Replies', text: 'Instant reply to every message — customers never have to wait.' },
+      { icon: '🍽️', title: 'Table & Party Bookings', text: 'Takes the booking, confirms it, adds it to the calendar and sends an auto reminder.' },
+      { icon: '🛒', title: 'Food Orders', text: 'Takes orders from the menu, confirms them and sends status updates — all automatic.' },
+      { icon: '💬', title: 'FAQ Auto-Reply', text: 'Correct answers to common questions about timing, location and payment.' },
+      { icon: '🔔', title: 'Reminders & Follow-ups', text: 'Booking reminders and a follow-up message after the service.' },
+      { icon: '⭐', title: 'Reviews & Feedback', text: 'Asks for feedback after the service — so your rating keeps growing.' },
     ],
     categoryOptions: [
       { value: 'restaurant', label: '🍽️ Restaurant / Cafe' },

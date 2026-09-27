@@ -1,5 +1,5 @@
 export const contactWhatsApp = '919899359566';
-export const UPI_ID = 'rivox@upi';
+export const UPI_ID = '9899359566@sbi';
 export const UPI_AMOUNT = '2,000';
 
 export const services = [

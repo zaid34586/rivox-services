@@ -111,9 +111,9 @@ export default function EnrollWhatsapp() {
         }
         await sleep(1300);
       }
-      if (!ok) setQrMessage('QR abhi ready nahi hai — thodi der baad Refresh dabao.');
+      if (!ok) setQrMessage('QR is not ready yet — wait a moment, then click Refresh.');
     } catch (e) {
-      setQrMessage('QR load nahi hua: ' + e.message);
+      setQrMessage('QR failed to load: ' + e.message);
     }
     setQrLoading(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -142,7 +142,7 @@ export default function EnrollWhatsapp() {
     setError('');
     const e164 = normalizePhone(phoneRaw);
     if (!e164) {
-      setError('Sahi WhatsApp number daalo — 10 digit, country code ke saath (e.g. 9876543210).');
+      setError('Please enter a valid WhatsApp number — 10 digits with country code (e.g., 9876543210).');
       return;
     }
     setPhone(e164);
@@ -189,12 +189,12 @@ export default function EnrollWhatsapp() {
   const submitForm = async (e) => {
     e.preventDefault();
     setError('');
-    if (!leadName.trim()) return setError('Apna naam daalo.');
-    if (!businessName.trim()) return setError('Business ka naam daalo.');
+    if (!leadName.trim()) return setError('Please enter your name.');
+    if (!businessName.trim()) return setError('Please enter the business name.');
     if (!category) return setError('Please select a business type.');
-    if (category === 'other' && !categoryOther.trim()) return setError('Other type likho.');
+    if (category === 'other' && !categoryOther.trim()) return setError('Please describe the other type.');
     if (chosen.length === 0 && !customOn) return setError('Select at least one service.');
-    if (customOn && !customService.trim()) return setError('Custom service likho.');
+    if (customOn && !customService.trim()) return setError('Please enter a custom service.');
 
     const businessId = makeBusinessId();
     const servicesList = [...chosen];
@@ -316,8 +316,8 @@ export default function EnrollWhatsapp() {
           <>
             <h2 className={styles.panelTitle}>Enter your WhatsApp number</h2>
             <p className={styles.panelDesc}>
-              Jis WhatsApp account ko connect karna hai wahi number daalo — usi pe QR scan
-              hoga aur agent usi number pe customers ko reply karega.
+              Enter the WhatsApp account you want to connect — the QR scan links it, and
+              the agent replies to your customers from that same number.
             </p>
             <form onSubmit={handleConnect}>
               <div className={styles.field}>
@@ -352,12 +352,12 @@ export default function EnrollWhatsapp() {
             <div className={styles.qrWrap}>
               {qrLoading ? (
                 <p className={styles.qrStatus}>
-                  <span className={glass.spinner} /> QR generate ho raha hai…
+                  <span className={glass.spinner} /> Generating QR code…
                 </p>
               ) : qrUrl ? (
                 <img className={styles.qrImage} src={qrUrl} alt="WhatsApp QR" />
               ) : (
-                <p className={styles.qrStatus}>⚠ {qrMessage || 'QR load ho raha hai…'}</p>
+                <p className={styles.qrStatus}>⚠ {qrMessage || 'Loading QR code…'}</p>
               )}
 
               <ol className={styles.qrSteps}>
@@ -368,7 +368,7 @@ export default function EnrollWhatsapp() {
 
               <p className={styles.qrStatus}>
                 {connected ? (
-                  <span className={`${glass.badge} ${glass.badgeGreen}`}>✓ Connected! Form khul raha hai…</span>
+                  <span className={`${glass.badge} ${glass.badgeGreen}`}>✓ Connected! Opening the form…</span>
                 ) : scanning ? (
                   <><span className={styles.dotPulse} /> Waiting for the scan — the form opens automatically once connected…</>
                 ) : (
@@ -394,7 +394,7 @@ export default function EnrollWhatsapp() {
             <form onSubmit={submitForm}>
               <div className={styles.row2}>
                 <div className={styles.field}>
-                  <label className={glass.label} htmlFor="leadName">Aapka Naam *</label>
+                  <label className={glass.label} htmlFor="leadName">Your Name *</label>
                   <input
                     id="leadName" className={glass.input} placeholder="Mohd Zaid"
                     value={leadName} onChange={(e) => setLeadName(e.target.value)}
@@ -424,7 +424,7 @@ export default function EnrollWhatsapp() {
 
               {category === 'other' && (
                 <div className={styles.field}>
-                  <label className={glass.label} htmlFor="categoryOther">Apna type likho *</label>
+                  <label className={glass.label} htmlFor="categoryOther">Please specify *</label>
                   <input
                     id="categoryOther" className={glass.input} placeholder="e.g. Pet Grooming"
                     value={categoryOther} onChange={(e) => setCategoryOther(e.target.value)}
@@ -441,7 +441,7 @@ export default function EnrollWhatsapp() {
                   />
                 </div>
                 <div className={styles.field}>
-                  <label className={glass.label} htmlFor="about">Aapki services / menu (optional)</label>
+                  <label className={glass.label} htmlFor="about">Your services / menu (optional)</label>
                   <input
                     id="about" className={glass.input} placeholder="e.g. Hair cut, Facial…"
                     value={about} onChange={(e) => setAbout(e.target.value)}
@@ -474,21 +474,21 @@ export default function EnrollWhatsapp() {
 
               {customOn && (
                 <div className={styles.field}>
-                  <label className={glass.label} htmlFor="customService">Apni service likho</label>
+                  <label className={glass.label} htmlFor="customService">Enter your service</label>
                   <input
                     id="customService" className={glass.input}
                     placeholder="e.g. Appointment booking for hair coloring"
                     value={customService} onChange={(e) => setCustomService(e.target.value)}
                   />
                   <p className={glass.help}>
-                    Custom service ke saath FAQ auto-reply bhi on ho jayega — final setup hum
-                    will confirm with you before finalizing.
+                    A custom service also enables FAQ auto-replies — we will confirm the
+                    final setup with you before finalizing.
                   </p>
                 </div>
               )}
 
               <div className={styles.field}>
-                <label className={glass.label}>Aapka Business ID (auto)</label>
+                <label className={glass.label}>Your Business ID (auto)</label>
                 <div className={styles.idPreview}>{makeBusinessId()}</div>
                 <p className={glass.help}>Used internally — nothing to remember.</p>
               </div>
@@ -510,8 +510,8 @@ export default function EnrollWhatsapp() {
             <div className={styles.successIcon}>✓</div>
             <h2 className={styles.panelTitle}>Setup started! 🎉</h2>
             <p className={styles.panelDesc}>
-              Business ID: <strong>{finalBusinessId}</strong> — agent abhi start ho raha hai
-              (30–60 second).
+              Business ID: <strong>{finalBusinessId}</strong> — your agent is starting up
+              (30–60 seconds).
             </p>
 
             <div className={styles.testBox}>
@@ -521,7 +521,7 @@ export default function EnrollWhatsapp() {
             </div>
 
             <div className={styles.payBox}>
-              <p className={styles.payTitle}>💳 Payment — service ACTIVE karne ke liye</p>
+              <p className={styles.payTitle}>💳 Payment — to activate your service</p>
               <div className={styles.upiRow}>
                 <span className={styles.upiVal}>{UPI_ID}</span>
                 <button className={styles.copyBtn} onClick={copyUpi}>
@@ -533,9 +533,9 @@ export default function EnrollWhatsapp() {
                 <span className={`${glass.badge} ${glass.badgeAmber}`}>month 1</span>
               </div>
               <ol className={styles.paySteps}>
-                <li>UPI pe <strong>₹{UPI_AMOUNT}</strong> bhejo (<strong>{UPI_ID}</strong>)</li>
-                <li>Payment ka <strong>screenshot</strong> neeche button se WhatsApp pe bhejo</li>
-                <li>Hum approve karte hi service <strong>ACTIVE</strong> ✅</li>
+                <li>Send <strong>₹{UPI_AMOUNT}</strong> to UPI ID <strong>{UPI_ID}</strong></li>
+                <li>Send the payment <strong>screenshot</strong> via WhatsApp using the button below</li>
+                <li>We approve it and your service goes <strong>ACTIVE</strong> ✅</li>
               </ol>
               <a
                 className={`${glass.btn} ${glass.btnWa} ${glass.btnBlock}`}
@@ -543,7 +543,7 @@ export default function EnrollWhatsapp() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                📸 Payment Screenshot WhatsApp pe Bhejo
+                📸 Send Payment Screenshot on WhatsApp
               </a>
 
               <div className={styles.statusRow}>

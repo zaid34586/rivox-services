@@ -191,9 +191,9 @@ export default function EnrollWhatsapp() {
     setError('');
     if (!leadName.trim()) return setError('Apna naam daalo.');
     if (!businessName.trim()) return setError('Business ka naam daalo.');
-    if (!category) return setError('Business type choose karo.');
+    if (!category) return setError('Please select a business type.');
     if (category === 'other' && !categoryOther.trim()) return setError('Other type likho.');
-    if (chosen.length === 0 && !customOn) return setError('Kam se kam ek service choose karo.');
+    if (chosen.length === 0 && !customOn) return setError('Select at least one service.');
     if (customOn && !customService.trim()) return setError('Custom service likho.');
 
     const businessId = makeBusinessId();
@@ -289,6 +289,7 @@ export default function EnrollWhatsapp() {
         </Link>
         <span className={`${glass.badge}`}>⚡ {svc.title}</span>
         <h1 className={styles.title}>Connect & Enroll</h1>
+        <p className={styles.priceNote}>WhatsApp setup completes instantly (~10 minutes). Website requests are processed within 24 hours.</p>
         <p className={styles.priceLine}>{svc.price}</p>
         <p className={styles.priceNote}>{svc.priceNote}</p>
       </header>
@@ -313,7 +314,7 @@ export default function EnrollWhatsapp() {
         {/* STEP 1 — CONNECT NUMBER */}
         {step === 1 && (
           <>
-            <h2 className={styles.panelTitle}>Apna WhatsApp number daalo</h2>
+            <h2 className={styles.panelTitle}>Enter your WhatsApp number</h2>
             <p className={styles.panelDesc}>
               Jis WhatsApp account ko connect karna hai wahi number daalo — usi pe QR scan
               hoga aur agent usi number pe customers ko reply karega.
@@ -331,7 +332,7 @@ export default function EnrollWhatsapp() {
                   onChange={(e) => setPhoneRaw(e.target.value)}
                   autoFocus
                 />
-                <p className={glass.help}>10 digit number — country code apne aap +91 lagega.</p>
+                <p className={glass.help}>10-digit number — the +91 country code is added automatically.</p>
               </div>
               <button className={`${glass.btn} ${glass.btnPrimary} ${glass.btnBlock}`} type="submit">
                 {qrLoading ? <span className={glass.spinner} /> : 'Get QR Code →'}
@@ -343,9 +344,9 @@ export default function EnrollWhatsapp() {
         {/* STEP 2 — QR */}
         {step === 2 && (
           <>
-            <h2 className={styles.panelTitle}>QR scan karo</h2>
+            <h2 className={styles.panelTitle}>Scan the QR code</h2>
             <p className={styles.panelDesc}>
-              Apne <strong>{phone}</strong> wale WhatsApp pe scan karo.
+              Scan it with the WhatsApp account on {phone}.
             </p>
             {error && <div className={`${glass.alert} ${glass.alertError}`}>{error}</div>}
             <div className={styles.qrWrap}>
@@ -360,18 +361,18 @@ export default function EnrollWhatsapp() {
               )}
 
               <ol className={styles.qrSteps}>
-                <li>Apne phone kholo → <strong>WhatsApp</strong></li>
+                <li>Open WhatsApp on your phone</li>
                 <li><strong>Settings → Linked Devices → Link a Device</strong></li>
-                <li>Upar wala QR scan karo</li>
+                <li>Scan the QR code above</li>
               </ol>
 
               <p className={styles.qrStatus}>
                 {connected ? (
                   <span className={`${glass.badge} ${glass.badgeGreen}`}>✓ Connected! Form khul raha hai…</span>
                 ) : scanning ? (
-                  <><span className={styles.dotPulse} /> Scan ka intezaar hai — connected hone par form apne aap khulega…</>
+                  <><span className={styles.dotPulse} /> Waiting for the scan — the form opens automatically once connected…</>
                 ) : (
-                  <span className={glass.badge}>QR expire ho gaya? Refresh karo</span>
+                  <span className={glass.badge}>QR expired? Refresh</span>
                 )}
               </p>
 
@@ -386,10 +387,9 @@ export default function EnrollWhatsapp() {
         {step === 3 && (
           <>
             <div className={styles.connectedBar}>✓ WhatsApp connected — {phone}</div>
-            <h2 className={styles.panelTitle}>Business details bharo</h2>
+            <h2 className={styles.panelTitle}>Business details</h2>
             <p className={styles.panelDesc}>
-              Ye details agent ko milengi — usi se aapke customers ko sahi jawab, booking aur
-              updates jayengi.
+              These details configure your agent — it uses them to reply to customers, take bookings and manage orders with the right information.
             </p>
             <form onSubmit={submitForm}>
               <div className={styles.row2}>
@@ -482,7 +482,7 @@ export default function EnrollWhatsapp() {
                   />
                   <p className={glass.help}>
                     Custom service ke saath FAQ auto-reply bhi on ho jayega — final setup hum
-                    aapke saath confirm karenge.
+                    will confirm with you before finalizing.
                   </p>
                 </div>
               )}
@@ -490,7 +490,7 @@ export default function EnrollWhatsapp() {
               <div className={styles.field}>
                 <label className={glass.label}>Aapka Business ID (auto)</label>
                 <div className={styles.idPreview}>{makeBusinessId()}</div>
-                <p className={glass.help}>Internally use hota hai — yaad rakhne ki zaroorat nahi.</p>
+                <p className={glass.help}>Used internally — nothing to remember.</p>
               </div>
 
               <button
@@ -508,18 +508,16 @@ export default function EnrollWhatsapp() {
         {step === 4 && (
           <div className={styles.center}>
             <div className={styles.successIcon}>✓</div>
-            <h2 className={styles.panelTitle}>Setup shuru ho gaya! 🎉</h2>
+            <h2 className={styles.panelTitle}>Setup started! 🎉</h2>
             <p className={styles.panelDesc}>
               Business ID: <strong>{finalBusinessId}</strong> — agent abhi start ho raha hai
               (30–60 second).
             </p>
 
             <div className={styles.testBox}>
-              <strong>🧪 Ab TEST karo:</strong>
+              <strong>🧪 Now test it:</strong>
               <br />
-              Kisi <strong>doosre phone / doosre WhatsApp number</strong> se apne connected
-              WhatsApp number pe message bhejo — booking, order ya koi bhi sawaal likho. Agent
-              turant jawab dega. <em>(Apne hi number pe self-chat se nahi chalega.)</em>
+              Send a message from a <strong>different phone / WhatsApp number</strong> to your connected WhatsApp number — type a booking, order or any question. The agent will reply instantly. <em>(This will not work when you message yourself from the same number.)</em>
             </div>
 
             <div className={styles.payBox}>

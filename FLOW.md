@@ -7,15 +7,18 @@ This document outlines the complete flow for the restaurant service on WhatsApp,
 
 ### 1. Welcome Message (Triggered on new chat or QR scan)
 ```
-Namaste! 🙏 Welcome to {RESTAURANT NAME}
-Service chuniye:
-🍽️ 1. Table Booking
-🛒 2. Food Order
-🎂 3. Party / Birthday Booking
-💬 4. Normal Chat
+Welcome to {business_name}! 👋
+
+How may we assist you today?
+1. Table Booking
+2. Food Order
+3. Party / Event Booking
+4. General Enquiries
+
+Please reply with a number (1-4) or keywords (booking, order, party, chat).
 ```
-- Customers can reply with the number (1-4) or keyword: "booking", "order", "party", "chat"
-- Based on enabled services in config, only relevant options are shown
+- Reply with a number (1-4) or keywords (booking, order, party, chat).
+- Note: NEW OWNER numbers instead receive the onboarding interest message.
 
 ### 2. Table Booking Flow
 **Step 1: Date Selection**
@@ -65,6 +68,51 @@ Service chuniye:
 - Agent handles generic queries (timings, location, menu) using trained FAQ
 - If unrecognized, forwards to owner
 - Owner's reply is sent back to customer
+
+## Features
+
+### Menu Photo Upload (owner)
+- Owner sends 'menu' (word in caption OR first photo when no menu saved);
+  router runs OCR (extract_menu_from_base64), validates item count, saves
+  via menu_parser.save_menu; failure => English error asking for a clearer photo.
+
+- Confirm reply: menu saved with item count.
+
+### Menu Editing via Chat (owner, ACTIVE state)
+- Add: 'add <item> <price>' — accepts ₹ or Rs forms (e.g. 'add paneer tikka Rs.280')
+
+- Update: 'update <item> price to <n>' (also ₹/Rs) — exact match first,
+  then fuzzy substring ('biryani' matches 'Hyderabadi Biryani')
+
+- Success reply: 'Updated."; unknown item => falls through (no match)
+
+### Delivery Address (food order)
+- Address step collects >= 5 chars, saved to orders.delivery_address
+  (schema.sql), customer confirmation + owner notification include Address line.
+
+### Onboarding Engine (WhatsApp chat, instant ~10 min)
+- States: interest -> awaiting_number -> qr_sent -> form_sent -> details_asked
+  -> submitted -> awaiting_test -> post_test -> awaiting_payment ->
+  payment_screenshot -> (bridge /approve) ACTIVE
+- Flag store: /home/ubuntu/.hermes/onboarding/<digits>.json (runtime only,
+  never write docs there)
+- Bridge endpoints: POST /onboard/start, POST /onboard/details,
+  /verify-phone, /reset-session, /approve/<bid>
+- Payment approved => flag -> ACTIVE + owner gets: 'Payment confirmed. Your
+  service is now ACTIVE. ✅' + table QR (wa.me link image via bot /send) +
+  handover message with menu-edit examples and test instructions
+- Test rule: message from a DIFFERENT number; self-chat does not count
+
+### Owner Reports
+- Daily 23:59 (bookings/orders/feedback avg)
+- Hourly 09:00-21:00 IST ('Rivox update HH:MM IST - Orders today: N - Pending: N')
+- Weekly Monday 09:00 IST ('Rivox weekly report (DD-MM-YYYY) - Orders: N -
+  Revenue: Rs.X - Avg rating: Z/5')
+- Note: server clock is UTC; schedules convert from IST.
+
+### Echo Guard / Self-Chat
+- Own outbound texts recorded + exact-match/60s echo dropped; self-chat
+  (remoteJid == ownJid) allowed for owner testing; groups ignored.
 
 ## Owner Configuration (Onboarding Form)
 
@@ -175,15 +223,28 @@ Service chuniye:
 - Owner reports/dashboard (daily/weekly sales, booking stats)
 
 ## Status Tracking
-- After each phase: `pm2 save` + `git push` + status message
-- Current status: Phase A in progress
----
+- Welcome English: ✅
+- Booking: ✅
+- Food order (incl. address): ✅
+- Party: ✅
+- FAQ/forward: ✅
+- Owner reply/status: ✅
+- Feedback 3-step: ✅
+- 1h reminder: ✅
+- No-show: ✅
+- Daily summary: ✅
+- Menu photo OCR: ✅
+- Menu chat editing: ✅
+- Echo guard: ✅
+- Onboarding engine (all states): ✅
+- Payment -> ACTIVE -> table QR handover: ✅
+- Hourly + weekly reports: ✅
+- Portal V2: ✅
 
-# Portal V2 — Glassmorphism Enroll Flow (2026-09-26) ✅ IMPLEMENTED
-
-Home page → service card (glass + neon glow) → detail modal → Enroll → Connect → QR →
-Details form → Submit → Lead on AWS → agent starts → test → manual UPI payment → ACTIVE.
-
+Remaining/PENDING:
+- real UPI ID (placeholder rivox@upi)
+- domain DNS (rivoxcloud.in)
+- final live test
 ## Pages (Vercel — connection path ONLY, no business logic on client)
 
 | Route | What it does |
@@ -240,7 +301,7 @@ Details form → Submit → Lead on AWS → agent starts → test → manual UPI
 - `.hermes/leads/*.json` = source of truth for new enrollments (Hermes watches this)
 - Portal stays on Vercel (connection path only); leads/agents/DB stay in `.hermes/` on EC2
 
-## Phase 2 (pending — Hermes)
-
-- Auto-fill agent: site ↔ Hermes ↔ owner WhatsApp (agent pre-fills customer details)
-- Lead finding + outreach agent on WhatsApp (fast customer acquisition)
+## Remaining / Pending
+- real UPI ID (placeholder rivox@upi)
+- domain DNS (rivoxcloud.in)
+- final live test

@@ -59,7 +59,8 @@ CREATE TABLE public.orders (
     total numeric(10,2) NOT NULL,
     status character varying(20) DEFAULT 'confirmed'::character varying NOT NULL,
     created_at timestamp without time zone DEFAULT now(),
-    updated_at timestamp without time zone DEFAULT now()
+    updated_at timestamp without time zone DEFAULT now(),
+    delivery_address text
 );
 
 

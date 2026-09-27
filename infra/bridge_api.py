@@ -8,6 +8,14 @@ from pathlib import Path
 from flask_cors import CORS
 import json
 import requests
+import logging
+
+# Load .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv("/home/ubuntu/.hermes/.env", override=True)
+except Exception as e:
+    print(f"Warning: Could not load .env: {e}")
 
 app = Flask(__name__)
 CORS(app)  # This will enable CORS for all routes
@@ -25,6 +33,7 @@ def require_token():
         print("DEBUG: require_token - no token header")
     masked_api = API_TOKEN[:3] + '...' + API_TOKEN[-3:] if len(API_TOKEN) > 6 else '*' * 6
     print(f"DEBUG: require_token - API_TOKEN: {masked_api}")
+    print(f"DEBUG: token == API_TOKEN? {token == API_TOKEN}")
     if token != API_TOKEN:
         return False
     return True
@@ -35,6 +44,7 @@ WHATSAPP_BOT_QR_URL = "http://127.0.0.1:8080/qr"  # WhatsApp bot running on same
 BOT_URL = "http://127.0.0.1:8080"
 LEADS_DIR = Path("/home/ubuntu/.hermes/leads")
 PHONE_MAP_FILE = Path("/home/ubuntu/.hermes/phone_map.json")
+ONBOARDING_DIR = Path("/home/ubuntu/.hermes/onboarding")
 SCHEMA_SQL = Path("/home/ubuntu/rivox-services/infra/schema.sql")
 PG_PASSWORD = "secure_password"
 PM2 = "/home/ubuntu/.local/bin/pm2"
@@ -208,6 +218,7 @@ def lead_status(business_id):
 
 
 @app.route('/approve/<business_id>', methods=['POST'])
+@app.route('/approve/<business_id>', methods=['POST'])
 def approve(business_id):
     if not require_token():
         return jsonify({"error": "Unauthorized"}), 401
@@ -219,9 +230,101 @@ def approve(business_id):
     lead["payment"]["paidAt"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
     lead["status"] = "active"
     f.write_text(json.dumps(lead, indent=2))
-    return jsonify({"success": True, "businessId": business_id, "status": "active"}), 200
 
+    # --- New: payment approval -> ACTIVE + handover ---
+    notified = False
+    try:
+        # a) get phone number from lead
+        phone_number = lead.get('phoneNumber') or lead.get('ownerWhatsApp')
+        if phone_number:
+            # b) generate QR
+            qrcode_ok = False
+            try:
+                import qrcode
+                from io import BytesIO
+                import base64
+                qrcode_ok = True
+            except ImportError:
+                try:
+                    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'qrcode', 'pillow'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    import qrcode
+                    from io import BytesIO
+                    import base64
+                    qrcode_ok = True
+                except Exception as e:
+                    logger.error(f"Failed to install qrcode: {e}")
+            
+            if qrcode_ok:
+                try:
+                    # Generate QR
+                    digits = re.sub(r'\D', '', phone_number)
+                    if len(digits) == 10:
+                        digits = '91' + digits
+                    wa_url = f"https://wa.me/{digits}"
+                    qr = qrcode.QRCode(box_size=10, border=2)
+                    qr.add_data(wa_url)
+                    qr.make(fit=True)
+                    img = qr.make_image(fill='black', back_color='white')
+                    buffered = BytesIO()
+                    img.save(buffered, format="PNG")
+                    qr_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
 
+                    # c) POST to bot's /send endpoint three times (actually two: text then image)
+                    bot_url = "http://localhost:8080/send"
+                    messages = [
+                        {
+                            "to": phone_number,
+                            "text": "Payment confirmed. Your service is now ACTIVE. ✅"
+                        },
+                        {
+                            "to": phone_number,
+                            "text": "1. Your table QR is attached — print it and place it on each table.\nCustomers scanning it connect directly to your business WhatsApp.\n\n2. Your self-chat is your dashboard: hourly activity updates and a weekly report will be delivered here automatically.\n\n3. To change anything later, simply message here — for example:\n'add paneer tikka Rs.280'.",
+                            "image": qr_base64
+                        }
+                    ]
+                    notify_success = True
+                    for msg in messages:
+                        try:
+                            resp = requests.post(bot_url, json=msg, timeout=10)
+                            if resp.status_code >= 400:
+                                logger.error(f"Bot send failed: {resp.status_code} {resp.text}")
+                                notify_success = False
+                        except Exception as e:
+                            logger.error(f"Bot send exception: {e}")
+                            notify_success = False
+                    notified = notify_success
+                except Exception as e:
+                    logger.error(f"QR generation error: {e}")
+
+            # d) update onboarding flag to active
+            digits = re.sub(r'\D', '', phone_number)
+            sender_last10 = digits[-10:] if len(digits) >= 10 else digits
+            onboarding_dir = Path("/home/ubuntu/.hermes/onboarding")
+            if onboarding_dir.exists():
+                for f in onboarding_dir.glob("*.json"):
+                    try:
+                        flag = json.loads(f.read_text())
+                        conn = flag.get("connect_number", "")
+                        conn_digits = re.sub(r"\D", "", conn or "")
+                        conn_last10 = conn_digits[-10:] if len(conn_digits) >= 10 else conn_digits
+                        if conn_last10 and conn_last10 == sender_last10:
+                            flag["state"] = "active"
+                            flag["updated"] = datetime.now().isoformat()
+                            f.write_text(json.dumps(flag, indent=2))
+                            break
+                    except Exception:
+                        continue
+        else:
+            logger.error("No phone number in lead for QR")
+    except Exception as e:
+        logger.error(f"Error in approve post-processing: {e}")
+
+    return jsonify({
+        "success": True,
+        "businessId": business_id,
+        "status": "active",
+        "notified": notified
+    }), 200
 @app.route('/onboard', methods=['POST'])
 def onboard():
     if not require_token():
@@ -293,6 +396,118 @@ def onboard():
         "message": f"Business {business_id} onboarded. Lead saved — payment pending.",
     })
 
+
+@app.route('/onboard/start', methods=['POST'])
+def onboard_start():
+    """Start onboarding for a lead - creates flag file with state=interest (idempotent)."""
+    if not require_token():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    phone = data.get('phone', '')
+    digits = re.sub(r"\D", "", phone or "")
+    if not digits:
+        return jsonify({"error": "phone required"}), 400
+
+    flag_path = ONBOARDING_DIR / f"{digits}.json"
+    ONBOARDING_DIR.mkdir(parents=True, exist_ok=True)
+
+    if flag_path.exists():
+        existing = json.loads(flag_path.read_text())
+        return jsonify({"ok": True, "state": existing.get("state"), "message": "Already started"})
+
+    flag = {
+        "phone": phone,
+        "connect_number": "",
+        "state": "interest",
+        "bid": "",
+        "details": {},
+        "updated": time.strftime("%Y-%m-%dT%H:%M:%S%z")
+    }
+    flag_path.write_text(json.dumps(flag, indent=2))
+    return jsonify({"ok": True, "state": "interest", "message": "Onboarding started"})
+
+
+@app.route('/onboard/details', methods=['POST'])
+def onboard_details():
+    """Write onboarding details into business config.yaml."""
+    if not require_token():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    bid = data.get('bid', '')
+    if not bid:
+        return jsonify({"error": "bid required"}), 400
+
+    if not re.fullmatch(r"[a-z0-9_]{3,50}", bid):
+        return jsonify({"error": "bid must match [a-z0-9_]{3,50}"}), 400
+
+    config_path = BASE_DIR / bid / "config" / "config.yaml"
+    if not config_path.exists():
+        return jsonify({"error": "Business config not found"}), 404
+
+    cfg = config_path.read_text()
+
+    # Parse timetable
+    timetable = data.get('timetable', '').strip()
+    if timetable:
+        # Expected format: "09:00-23:00, off Monday"
+        parts = [p.strip() for p in timetable.split(',')]
+        start_time = parts[0].split('-')[0] if '-' in parts[0] else '09:00'
+        end_time = parts[0].split('-')[1] if '-' in parts[0] else '18:00'
+        weekly_off = ''
+        if len(parts) > 1 and 'off' in parts[1].lower():
+            weekly_off = parts[1].replace('off', '').strip()
+
+        # Update working_hours
+        cfg = re.sub(r'start: ".*?"', f'start: "{start_time}"', cfg)
+        cfg = re.sub(r'end: ".*?"', f'end: "{end_time}"', cfg)
+        if weekly_off:
+            cfg = re.sub(r'weekly_off: ".*?"', f'weekly_off: "{weekly_off}"', cfg)
+
+    # Payment
+    payment = data.get('payment_collect', '').strip()
+    if payment:
+        cfg = re.sub(r'payment: \{[^}]*\}', f'payment: {{"method": "manual", "details": "{yaml_str(payment)}"}}', cfg)
+
+    # Address
+    address = data.get('address', '').strip()
+    if address:
+        cfg = re.sub(r'address: ".*?"', f'address: "{yaml_str(address)}"', cfg)
+
+    # GST
+    gst = data.get('gst', '').strip()
+    if gst:
+        cfg = re.sub(r'gst_number: ".*?"', f'gst_number: "{yaml_str(gst)}"', cfg)
+
+    # Services
+    services = data.get('services', [])
+    if services:
+        lines = "    enabled_services:\n" + "".join(f"      - {s}\n" for s in services) + "    tables: 10"
+        cfg = re.sub(r"    enabled_services:\n(?:      - .*\n)+    tables: 10", lines, cfg, count=1)
+
+    # Custom note
+    custom = data.get('custom', '').strip()
+    if custom:
+        cfg = re.sub(r'customNote: ".*?"', f'customNote: "{yaml_str(custom)}"', cfg)
+
+    config_path.write_text(cfg)
+
+    # Also append to lead file
+    lead_file = LEADS_DIR / f"{bid}.json"
+    if lead_file.exists():
+        lead = json.loads(lead_file.read_text())
+        lead.setdefault("details", {}).update({
+            "timetable": timetable,
+            "payment_collect": payment,
+            "address": address,
+            "gst": gst,
+            "services": services,
+            "custom": custom
+        })
+        lead_file.write_text(json.dumps(lead, indent=2))
+
+    return jsonify({"ok": True})
+
+
 @app.route('/verify-session/<business_id>', methods=['GET'])
 def verify_session(business_id):
     if not require_token():
@@ -311,6 +526,7 @@ def verify_session(business_id):
     except Exception as e:
         return jsonify({"valid": False, "reason": f"Invalid session: {str(e)}"})
 
+
 @app.route('/qr', methods=['GET'])
 def get_qr():
     # Proxy the QR code from the WhatsApp bot to avoid mixed content issues
@@ -323,6 +539,7 @@ def get_qr():
             return jsonify({"error": "Failed to fetch QR code from WhatsApp bot"}), 500
     except Exception as e:
         return jsonify({"error": f"Error fetching QR code: {str(e)}"}), 500
+
 
 @app.route('/status/<business_id>', methods=['GET'])
 def get_status(business_id):
@@ -342,6 +559,7 @@ def get_status(business_id):
             return jsonify({"error": f"Failed to get status: {result.stderr}"}), 500
     except Exception as e:
         return jsonify({"error": f"Error getting status: {str(e)}"}), 500
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8081)
